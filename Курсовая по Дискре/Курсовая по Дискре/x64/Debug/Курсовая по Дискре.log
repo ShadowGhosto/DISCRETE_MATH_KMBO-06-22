@@ -1,0 +1,3 @@
+﻿  1.cpp
+1.obj : warning LNK4075: не учитывается "/EDITANDCONTINUE" из-за спецификации "/INCREMENTAL:NO"
+  Курсовая по Дискре.vcxproj -> C:\Users\masiv\OneDrive\Рабочий стол\c++\Курсовая по Дискре\x64\Debug\Курсовая по Дискре.exe
