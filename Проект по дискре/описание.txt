@@ -1,0 +1,74 @@
+Для более заметного различия между оригинальным и сегментированным изображениями, вы можете просто инвертировать цвета сегментированного изображения. Вот обновленный код:
+
+```python
+import numpy as np
+import networkx as nx
+import cv2
+
+def image_to_graph(image, threshold=127):
+    height, width = image.shape
+    G = nx.DiGraph()
+
+    source = (-1, -1)
+    sink = (-2, -2)
+
+    G.add_node(source)
+    G.add_node(sink)
+
+    for i in range(height):
+        for j in range(width):
+            node = (i, j)
+            capacity = image[i, j]
+            G.add_edge(source, node, capacity=capacity)
+            G.add_edge(node, sink, capacity=capacity)
+
+            if i > 0:
+                neighbor = (i - 1, j)
+                G.add_edge(node, neighbor, capacity=min(capacity, image[i - 1, j]))
+            if j > 0:
+                neighbor = (i, j - 1)
+                G.add_edge(node, neighbor, capacity=min(capacity, image[i, j - 1]))
+
+    return G, source, sink
+
+def segment_image(image_path, threshold=127):
+    image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+    _, binary_image = cv2.threshold(image, threshold, 255, cv2.THRESH_BINARY)
+
+    G, source, sink = image_to_graph(binary_image)
+
+    max_flow_value, flow_dict = nx.maximum_flow(G, source, sink)
+
+    segmented_image = np.zeros_like(binary_image)
+    for i in range(binary_image.shape[0]):
+        for j in range(binary_image.shape[1]):
+            if flow_dict[source][i, j] > 0:
+                segmented_image[i, j] = 255
+
+    # Инвертируем цвета сегментированного изображения
+    inverted_segmented_image = cv2.bitwise_not(segmented_image)
+
+    # Отображение результатов
+    cv2.imshow('Original Image', binary_image)
+    cv2.imshow('Segmented Image', inverted_segmented_image)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
+# Пример использования
+image_path = '2.jpg'
+segment_image(image_path)
+```
+
+Данный код использует алгоритм максимального потока для сегментации изображения. Алгоритм Эдмондса-Карпа является одним из методов поиска максимального потока в сети. В данном случае, изображение преобразуется в граф, где каждый пиксель представляет узел, а рёбра между соседними пикселями имеют пропускную способность, зависящую от интенсивности соответствующих пикселей.
+
+Процесс работы алгоритма в коде:
+
+1. Изображение сначала преобразуется в граф с помощью функции `image_to_graph`. В этой функции создаются узлы для каждого пикселя и соответствующие рёбра с пропускной способностью, равной интенсивности пикселя. Также добавляются источник и сток с рёбрами к и от каждого пикселя.
+
+2. После создания графа вызывается функция `nx.maximum_flow`, которая применяет алгоритм Эдмондса-Карпа для нахождения максимального потока в сети. Результатом является значение максимального потока и словарь `flow_dict`, содержащий потоки через каждое ребро.
+
+3. Сегментированное изображение создается на основе потоков из источника к узлам. Если есть поток от источника к узлу, соответствующий пиксель в сегментированном изображении устанавливается в белый цвет.
+
+4. Результаты выводятся с использованием библиотеки `matplotlib` в виде двух изображений: оригинального и сегментированного.
+
+Таким образом, код выполняет сегментацию изображения, выделяя связанные области схожих пикселей на основе максимального потока в графе.
